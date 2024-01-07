@@ -224,9 +224,10 @@ app.post('/login', (req, res) => {
           if(key.toString('base64') === rows[0].password){
             const savingToken = jwt.sign({ sub: 'rudgks0102'}, SECRET_KEY)
             console.log("토큰 : ",savingToken)
-            const decoded_data = jwt.verify(savingToken, SECRET_KEY);
-            console.log(decoded_data)
+            // const decoded_data = jwt.verify(savingToken, SECRET_KEY);
+            // console.log(decoded_data)
             res.json({success : true , token : savingToken});
+            
           } else {
             res.json({success : false})
           }
