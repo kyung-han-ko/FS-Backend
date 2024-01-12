@@ -239,71 +239,58 @@ app.post('/login', (req, res) => {
   })
 });
 
+// calendar part
+// insert
+app.post('/loadCalendar', (req, res) => {
+  const data = req.body;
+  console.log('넘어온 내용:', data);
 
+  const insertSql = 'INSERT INTO user_calendar (todayFood, kcalToday, fitToday, kcalFit, tomorrowFood, tomorrowFit, currentYM) VALUES (?, ?, ?, ?, ?, ?, ?)';
+  const values = [data.todayFood, data.kcalToday, data.fitToday, data.kcalFit, data.tomorrowFood, data.tomorrowFit, data.clientClickData];
 
-// const savingToken = jwt.sign({ email: rows[0].email, password: rows[0].password }, SECRET_KEY);
+  connection.query(insertSql, values, (err, rows) => {
+    if (err) {
+      console.error('error:', err);
+      res.json({ success: false, result: '데이터 입력 fail' });
+    } else {
+      console.log('데이터 입력 success');
+      res.json({ success: true, result: '데이터 입력 success' });
+    }
+  });
+});
 
+//select
+app.get('/getCalendarData', (req, res) => {
+  const currentYM = req.query.currentYM;
+  const selectSql = 'SELECT * FROM user_calendar WHERE DATE_FORMAT(currentYM, "%Y-%m") = ?';
+  const values = [currentYM];
 
+  connection.query(selectSql, values, (err, rows) => {
+    if (err) {
+      console.error('에러:', err);
+      res.json({ success: false, result: '데이터 조회 실패' });
+    } else {
+      console.log('데이터 조회 success');
+      res.json({ success: true, result: rows });
+      console.log('check currentYM',values)
+    }
+  });
+});
 
+// modal select
+// app.get('/getCalendar', (req, res) => {
+//   const selectSql = 'SELECT * FROM user_calendar WHERE DATE_FORMAT(currentYM, "%Y-%m-%d") = ?';
+//   const currentDate = req.query.currentYM;
 
-
-
-
-
-
-
-
-
-
-
-//Node 설치
-//Express 설치를 위해서 'npm init'
-//npm install express + npm install cors
-//Express 셋업
-// = > 코드적기
-// API 생성
-// => app,get(), app.post
-
-// 123 789 21 23 는 세트
-
-
-// if (email && password1 && password2) {
-
-// connection.query('SELECT * FROM user_list WHERE email = ?', email, function(err, rows) { // DB에 같은 이름의 회원아이디가 있는지 확인
-
-//   if (Array.isArray(rows) && rows.length) {     // DB에 같은 이름의 회원아이디가 없고, 비밀번호가 올바르게 입력된 경우 
-//     const sql = "INSERT INTO user_list (email, name, password) VALUES (?,?,?)";
-//     const values = [email,name,key.toString('base64')];
-//     connection.query(sql, values , function (err, result) {
-//       if (err) throw err;
-//       console.log("Number of records inserted: " + result.affectedRows);
-//     });
-//   } else if (password1 != password2) {                     // 비밀번호가 올바르게 입력되지 않은 경우
-//       console.log("11111");    
-//   }
-//   else {                                                  // DB에 같은 이름의 회원아이디가 있는 경우
-//     console.log("22222");    
-//   }            
+//   connection.query(selectSql, [currentDate], (err, rows) => {
+//     if (err) {
+//       console.error('에러:', err);
+//       res.json({ success: false, result: '데이터 조회 실패' });
+//     } else {
+//       console.log('데이터 조회 성공');
+//       console.log(rows);
+//       console.log(currentDate)
+//       res.json({ success: true, result: rows });
+//     }
+//   });
 // });
-
-// } else {        // 입력되지 않은 정보가 있는 경우
-// console.log("33333");
-// }
-
-// connection.query('select email from user_list where email=?', email, function(err,rows){
-  //   if(Array.isArray(rows) && rows.length){
-  //     console.log('false');
-  //     res.json({success : false});
-  //   } else {
-  //     const sql = "INSERT INTO user_list (email, name, password) VALUES (?,?,?)";
-  //     const values = [email,name,key.toString('base64')];
-  //     connection.query(sql, values , function (err, result) {
-  //       if (err) throw err;
-  //       console.log("Number of records inserted: " + result.affectedRows);
-  //     });
-  //     connection.release(); // 연결 해제 realease방식으로 바꿈. pool의 특성
-  //     res.json({success : true})
-  //   }
-  // });
-
-  //     });// DB 데이터 삽입 추가됐는지 확인만 한다
