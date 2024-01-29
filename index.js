@@ -1,4 +1,3 @@
-
 //MySql 연결 프롬프트로 변경을 안해서 mysql2로 설치했음
 const mysql = require('mysql2');
 const connection = mysql.createPool({  // mysql 접속 설정 // 크리에이트 풀로 변경해서 진행했음. mysql2의 장점이자 단점임
@@ -116,6 +115,8 @@ app.listen(8080, function(){
         console.log("express Running on 8080.")
 });
 
+//최종 가입하기 버튼 눌렀을 때 나오는 앱 포스트
+
 // 최종 가입하기 버튼 눌렀을 때 나오는 앱 포스트
 app.post('/signup', (req, res) => {
   const email = req.body.email;
@@ -145,20 +146,20 @@ app.post('/signup', (req, res) => {
                           console.log('중복된 이메일이 있습니다');
                           res.json({ success: false });
                       } else {
-                          // 닉네임 중복 확인(UQ쓰려고 바꿈. 01-22수정)
+                          // 닉네임 중복 확인(UQ쓰려고바꿈)
                           connection.query('SELECT name FROM user_list WHERE name=?', name, function (err, nameRows) {
                               if (err) throw err;
 
                               if (Array.isArray(nameRows) && nameRows.length) {
-                                  // 중복된 닉네임
+                                  // 중복된 닉네임이 이미 존재하는 경우
                                   console.log('중복된 닉네임이 있습니다');
                                   res.json({ nickname: false });
                               } else if (password1 !== password2) {
-                                  // 비번 확인
+                                  // 비밀번호와 비밀번호 확인이 일치하지 않는 경우
                                   console.log('비밀번호와 비밀번호 확인이 일치하지 않습니다');
                                   res.json({ test: false });
                               } else {
-                                  // 다 맞으면 회원가입 성공
+                                  // 모든 조건을 통과한 경우 가입 진행
                                   const sql = "INSERT INTO user_list (email, name, password) VALUES (?,?,?)";
                                   const values = [email, name, key.toString('base64')];
                                   connection.query(sql, values, function (err, result) {
@@ -172,7 +173,7 @@ app.post('/signup', (req, res) => {
                       }
                   });
               } else {
-                  // 하나라도 입력하지 않으면 경고창
+                  // 입력하지 않은 정보가 있는 경우
                   console.log("입력하지 않은 정보가 있습니다");
                   res.json({ result: false });
               }
@@ -213,12 +214,15 @@ app.post('/emailCheck', (req, res) => {
   connection.getConnection(function (err, connection) {
       if (err) throw err;
 
+      // 이메일 중복 확인 쿼리
       connection.query('SELECT email FROM user_list WHERE email=?', emailCheck, function (err, rows) {
           if (err) throw err;
 
           if (Array.isArray(rows) && rows.length) {
+              // 중복된 이메일이 이미 존재하는 경우
               res.json({ success: false });
           } else {
+              // 중복되지 않은 경우
               res.json({ success: true });
           }
       });
@@ -257,7 +261,12 @@ app.post('/login', (req, res) => {
             console.log("토큰 : ",savingToken)
             // const decoded_data = jwt.verify(savingToken, SECRET_KEY);
             // console.log(decoded_data)
-            res.json({success : true , token : savingToken});
+
+            //1월 23일 수정 매우 중요 반드시 복습
+            //로컬 스토리지에 자체적으로 아이디값을 저장하는 방법 로그인 로직이랑 확인해야함
+            const userId = rows[0].userId;
+            const userName = rows[0].name;
+            res.json({success : true , token : savingToken , userId , userName});
             
           } else {
             res.json({success : false})
@@ -271,14 +280,13 @@ app.post('/login', (req, res) => {
 });
 
 // calendar part
-
 // insert
 app.post('/loadCalendar', (req, res) => {
   const data = req.body;
   console.log('넘어온 내용:', data);
 
-  const insertSql = 'INSERT INTO user_calendar (eventTitle, todayFood, kcalToday, fitToday, kcalFit, tomorrowFood, tomorrowFit, currentYM) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
-  const values = [data.eventTitle, data.todayFood, data.kcalToday, data.fitToday, data.kcalFit, data.tomorrowFood, data.tomorrowFit, data.clientClickData];
+  const insertSql = 'INSERT INTO user_calendar (owner, eventTitle, todayFood, kcalToday, fitToday, kcalFit, tomorrowFood, tomorrowFit, currentYM) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
+  const values = [data.userId, data.eventTitle, data.todayFood, data.kcalToday, data.fitToday, data.kcalFit, data.tomorrowFood, data.tomorrowFit, data.clientClickData];
 
   connection.query(insertSql, values, (err, rows) => {
     if (err) {
@@ -294,8 +302,9 @@ app.post('/loadCalendar', (req, res) => {
 //select
 app.get('/getCalendarData', (req, res) => {
   const currentYM = req.query.currentYM;
-  const selectSql = 'SELECT * FROM user_calendar WHERE DATE_FORMAT(currentYM, "%Y-%m") = ?';
-  const values = [currentYM];
+  const userId = req.query.userId
+  const selectSql = 'SELECT * FROM user_calendar WHERE DATE_FORMAT(currentYM, "%Y-%m") = ? AND owner = ?';
+  const values = [currentYM, userId];
 
   connection.query(selectSql, values, (err, rows) => {
     if (err) {
@@ -329,3 +338,65 @@ app.post('/deleteCalendarData', (req, res) => {
 });
 
 /* */
+
+//게시판 처음 
+
+app.post('/boardSubmit', (req, res) => {
+  const userId = req.body.UserId;
+  const userName = req.body.UserName;
+  const title = req.body.title;
+  const content = req.body.content;
+
+  const insertSql = 'INSERT INTO user_board (userid, name, title, text) VALUES (?, ?, ?, ?)';
+  const values = [userId,userName,title,content];
+
+  connection.query(insertSql, values, (err, result) => {
+    if (err) {
+      console.error('에러:', err);
+      res.json({ success: false, result: '데이터 전송 실패' });
+    } else {
+      console.log('데이터 삭제 success');
+      res.json({ success: true, result: '데이터 전송 success' });
+    }
+  });
+});
+
+app.get('/getBoardData', (req, res) => {
+  // const userId = req.query.userId
+  const selectSql = 'SELECT name, title, createdAt , boardid , look FROM user_board ORDER BY createdAt DESC';
+
+  connection.query(selectSql, (err, result) => {
+    if (err) {
+      console.error('에러:', err);
+      res.json({ success: false });
+    } else {
+      console.log('데이터 조회 success');
+      res.json({ success: true, result});
+    }
+  });
+});
+
+app.get('/increaseLook', (req, res) => {
+  const boardId = req.query.boardid;
+  const updateLookSql = 'UPDATE user_board SET look = look + 1 WHERE boardid = ?';
+  connection.query(updateLookSql, [boardId], (err, updateResult) => {
+    if (err) {
+      console.error('조회수 업데이트 에러:', err);
+      res.json({ success: false, result: "failed" });
+    } else {
+      res.json({ success: true, result: "success" });
+    }
+  });
+});
+
+app.get('/getBoardText', (req, res) => {
+  const boardId = req.query.boardid;
+  const selectSql = 'SELECT * FROM user_board WHERE boardid = ?';
+  connection.query(selectSql, [boardId], (err, result) => {
+    if (err) {
+      res.json({ success: false, result: "failed" });
+    } else {
+      res.json({ success: true, result: result });
+    }
+  });
+});
