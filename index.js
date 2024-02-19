@@ -409,6 +409,7 @@ app.get("/getBoardData", (req, res) => {
   const currentData = req.query.currentData;
   const pageSize = req.query.pageSize;
   const offset = (currentData - 1) * pageSize;
+  //offset은 데이터를 특정한 위치부터 가져오는데 사용함. 페이지별로 분할하고 원하는 데이터를 가져올수있는 쿼리어임
   const selectSql = `SELECT name, title, createdAt, boardid, look FROM user_board ORDER BY createdAt DESC LIMIT ${pageSize} OFFSET ${offset}`;
 
   connection.query(selectSql, (err, result) => {
@@ -437,6 +438,71 @@ app.get("/getAllPost", (req, res) => {
     }
   });
 });
+
+// 조회수별로 정렬하는 기능
+
+app.get("/lookAllPosts", (req, res) => {
+  const currentLook = req.query.currentLook;
+  const pageSize = 10;
+  const offset = (currentLook - 1) * pageSize;
+
+  const countSql = `SELECT COUNT(*) AS allPost FROM user_board`;
+  const lookSql = `SELECT * FROM user_board ORDER BY look DESC LIMIT ${pageSize} OFFSET ${offset}`;
+
+  connection.query(countSql, (err, countResult) => {
+    if (err) {
+      console.error(err, "err");
+      res.json({ success: false });
+    } else {
+      const allPost = countResult[0].allPost;
+      const allPages = Math.ceil(allPost / pageSize);
+
+      connection.query(lookSql, (err, lookResult) => {
+        if (err) {
+          console.error("err", err);
+          res.json({ success: false });
+        } else {
+          console.log("조회수 순서대로 정렬");
+          res.json({ success: true, result: lookResult, allPages });
+        }
+      });
+    }
+  });
+});
+// 검색기능
+// 검색기능에 대해서 공부할범위 , 2월15일부터 17일까지의 분량임
+
+app.get("/searchPosts", (req, res) => {
+  const keyword = req.query.keyword;
+  const currentPage = req.query.currentPage;
+  const pageSize = 10;
+  const offset = (currentPage - 1) * pageSize;
+
+  const countSql = `SELECT COUNT(*) AS allPost FROM user_board WHERE name LIKE '%${keyword}%' OR title LIKE '%${keyword}%'`;
+  const searchSql = `SELECT name, title, createdAt, boardid, look FROM user_board WHERE name LIKE '%${keyword}%' OR title LIKE '%${keyword}%' ORDER BY createdAt DESC LIMIT ${pageSize} OFFSET ${offset}`;
+
+  connection.query(countSql, (err, countResult) => {
+    if (err) {
+      console.error(err, "err");
+      res.json({ success: false });
+    } else {
+      const allPost = countResult[0].allPost;
+      const allPages = Math.ceil(allPost / pageSize);
+
+      connection.query(searchSql, (err, searchResult) => {
+        if (err) {
+          console.error(err, "err");
+          res.json({ success: false });
+        } else {
+          console.log("검색된 자료만 불러왔다");
+          res.json({ success: true, result: searchResult, allPages });
+        }
+      });
+    }
+  });
+});
+
+// 검색기능에 대해서 공부할범위 , 2월15일부터 17일까지의 분량임
 
 // 조회수 증가
 
