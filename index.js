@@ -55,8 +55,10 @@ app.get("/a", function (req, res) {
   res.json({ data: "예시" });
 });
 
+const userController = require("./controllers/user.controller");
 //이메일 인증버튼에 대한 데이터 교류 , 레디스로 새롭게 개편했음
 //어싱크 어웨이트로 개편했음
+app.use("/user", userController);
 
 app.post("/post", async function (req, res) {
   const email = req.body.email;
