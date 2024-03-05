@@ -1,12 +1,13 @@
 //MySql 연결 프롬프트로 변경을 안해서 mysql2로 설치했음
+require("dotenv").config();
 const mysql = require("mysql2");
 const connection = mysql.createPool({
   // mysql 접속 설정 // 크리에이트 풀로 변경해서 진행했음. mysql2의 장점이자 단점임
-  host: "localhost",
-  port: "3306",
-  user: "root",
-  password: "-Kkhrudgks0102",
-  database: "test",
+  host: process.env.MYSQL_HOST,
+  port: process.env.MYSQL_PORT,
+  user: process.env.MYSQL_USER,
+  password: process.env.MYSQL_PASSWORD,
+  database: process.env.MYSQL_DATABASE,
   keepAliveInitialDelay: 10000,
   enableKeepAlive: true,
 });
@@ -261,7 +262,6 @@ app.post("/emailCheck", (req, res) => {
 const jwt = require("jsonwebtoken");
 const { off } = require("process");
 // const secret_key = 'MY-SECRET-KEY';
-require("dotenv").config();
 const SECRET_KEY = process.env.SECRET_KEY;
 
 app.post("/login", (req, res) => {
