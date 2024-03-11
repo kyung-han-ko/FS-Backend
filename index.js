@@ -1,23 +1,19 @@
-//MySql 연결 프롬프트로 변경을 안해서 mysql2로 설치했음
 require("dotenv").config();
-const mysql = require("mysql2");
-const connection = mysql.createPool({
-  // mysql 접속 설정 // 크리에이트 풀로 변경해서 진행했음. mysql2의 장점이자 단점임
-  host: process.env.MYSQL_HOST,
-  port: process.env.MYSQL_PORT,
-  user: process.env.MYSQL_USER,
-  password: process.env.MYSQL_PASSWORD,
-  database: process.env.MYSQL_DATABASE,
-  keepAliveInitialDelay: 10000,
-  enableKeepAlive: true,
-});
-
-// mysql과 연결 , 안되서 2로 시행함 됐음
-// 크립토
+// const mysql = require("mysql2");
+// console.log(process.env.MYSQL_HOST);
+// console.log(process.env.MYSQL_PORT);
+// const connection = mysql.createPool({
+//   // host: process.env.MYSQL_HOST,
+//   // port: process.env.MYSQL_PORT,
+//   host: "localhost",
+//   port: "3306",
+//   user: process.env.MYSQL_USER,
+//   password: process.env.MYSQL_PASSWORD,
+//   database: process.env.MYSQL_DATABASE,
+//   keepAliveInitialDelay: 10000,
+//   enableKeepAlive: true,
+// });
 const crypto = require("crypto");
-
-//익스프레스 , 노드메일러 , 레디스 코드
-// 설정값에 대해서는 디폴트라 굳이 외울 필요는 없음
 
 const express = require("express");
 const app = express();
@@ -28,7 +24,7 @@ const fileStore = require("session-file-store")(session); //11월15일 고친거
 const redis = require("redis");
 const redisport = 6379;
 const getRedisClient = require("./redisclient");
-
+const connection = require("./db_init");
 const RandomNumber = function (min, max) {
   const ranNum = Math.floor(Math.random() * (max - min + 1)) + min;
   return ranNum;
@@ -40,64 +36,67 @@ const RandomNumber = function (min, max) {
 app.use(cors({ credentials: true, origin: ["http://127.0.0.1:5500"] }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(
-  session({
-    secret: "12345",
-    resave: true,
-    saveUninitialized: true,
-    store: new fileStore(), //11월15일 고친거
-    cookie: {
-      maxAge: 677777,
-    },
-  })
-);
+// app.use(
+//   session({
+//     secret: "12345",
+//     resave: true,
+//     saveUninitialized: true,
+//     store: new fileStore(), //11월15일 고친거
+//     cookie: {
+//       maxAge: 677777,
+//     },
+//   })
+// );
 
 app.get("/a", function (req, res) {
   res.json({ data: "예시" });
 });
 
 const userController = require("./controllers/user.controller");
-//이메일 인증버튼에 대한 데이터 교류 , 레디스로 새롭게 개편했음
-//어싱크 어웨이트로 개편했음
+const boardController = require("./controllers/board.controller");
+const calendarController = require("./controllers/calendar.controller");
+
 app.use("/user", userController);
+app.use("/board", boardController);
+app.use("/calendar", calendarController);
 
-app.post("/post", async function (req, res) {
-  const email = req.body.email;
-  const number = RandomNumber(111111, 999999);
+// app.post("/post", async function (req, res) {
+//   const email = req.body.email;
+//   const number = RandomNumber(111111, 999999);
 
-  const transporter = nodemailer.createTransport({
-    service: "Naver",
-    port: 587,
-    // secure: true,
-    host: "smtp.naver.com",
-    auth: {
-      user: "rudgks0102@naver.com",
-      pass: "1q2w3e4r##",
-    },
-  });
+//   const transporter = nodemailer.createTransport({
+//     service: "Naver",
+//     port: 587,
+//     // secure: true,
+//     host: "smtp.naver.com",
+//     auth: {
+//       user: "rudgks0102@naver.com",
+//       pass: "1q2w3e4r##",
+//     },
+//   });
 
-  const mailOptions = {
-    from: "rudgks0102@naver.com",
-    to: email,
-    subject: "Fitness Station에서 소중한 고객님께 인증번호를 보내드립니다",
-    text: "우측에 표시되는 숫자를 입력해주세요 : " + number,
-  };
+//   const mailOptions = {
+//     from: "rudgks0102@naver.com",
+//     to: email,
+//     subject: "Fitness Station에서 소중한 고객님께 인증번호를 보내드립니다",
+//     text: "우측에 표시되는 숫자를 입력해주세요 : " + number,
+//   };
 
-  transporter.sendMail(mailOptions, async function (error, info) {
-    if (error) {
-      console.log(error);
-    } else {
-      console.log("이메일 발송 완료: " + info.response);
-      const redisClient = await getRedisClient();
-      await redisClient.set("emailCheck", number); //11월15일 고친거
-    }
-  });
-  res.json({
-    result: "receive data",
-  });
-});
+//   transporter.sendMail(mailOptions, async function (error, info) {
+//     if (error) {
+//       console.log(error);
+//     } else {
+//       console.log("이메일 발송 완료: " + info.response);
+//       const redisClient = await getRedisClient();
+//       await redisClient.set("emailCheck", number); //11월15일 고친거
+//     }
+//   });
+//   res.json({
+//     result: "receive data",
+//   });
+// });
 
-//이메일 인증번호 확인버튼에 대해서 데이터 교류
+// 이메일 인증번호 확인버튼에 대해서 데이터 교류
 
 app.post("/emailCheck", async (req, res) => {
   const emailNumber = req.body.emailNumber;
@@ -119,8 +118,6 @@ app.post("/emailCheck", async (req, res) => {
 app.listen(8080, function () {
   console.log("express Running on 8080.");
 });
-
-//최종 가입하기 버튼 눌렀을 때 나오는 앱 포스트
 
 // 최종 가입하기 버튼 눌렀을 때 나오는 앱 포스트
 app.post("/signup", (req, res) => {
@@ -308,359 +305,4 @@ app.post("/login", (req, res) => {
       }
     }
   );
-});
-
-// calendar part
-// insert
-app.post("/loadCalendar", (req, res) => {
-  const data = req.body;
-  console.log("넘어온 내용:", data);
-
-  const insertSql =
-    "INSERT INTO user_calendar (owner, eventTitle, todayFood, kcalToday, fitToday, kcalFit, tomorrowFood, tomorrowFit, currentYM) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-  const values = [
-    data.userId,
-    data.eventTitle,
-    data.todayFood,
-    data.kcalToday,
-    data.fitToday,
-    data.kcalFit,
-    data.tomorrowFood,
-    data.tomorrowFit,
-    data.clientClickData,
-  ];
-
-  connection.query(insertSql, values, (err, rows) => {
-    if (err) {
-      console.error("error:", err);
-      res.json({ success: false, result: "데이터 입력 fail" });
-    } else {
-      console.log("데이터 입력 success");
-      res.json({ success: true, result: "데이터 입력 success" });
-    }
-  });
-});
-
-//select
-app.get("/getCalendarData", (req, res) => {
-  const currentYM = req.query.currentYM;
-  const userId = req.query.userId;
-  const selectSql =
-    'SELECT * FROM user_calendar WHERE DATE_FORMAT(currentYM, "%Y-%m") = ? AND owner = ?';
-  const values = [currentYM, userId];
-
-  connection.query(selectSql, values, (err, rows) => {
-    if (err) {
-      console.error("에러:", err);
-      res.json({ success: false, result: "데이터 조회 실패" });
-    } else {
-      console.log("데이터 조회 success");
-      res.json({ success: true, result: rows });
-      console.log("check currentYM", values);
-    }
-  });
-});
-
-// delete
-app.post("/deleteCalendarData", (req, res) => {
-  const eventId = req.body.eventId;
-  console.log(eventId);
-
-  const deleteSql = "DELETE FROM user_calendar WHERE eventId = ?";
-  const values = [eventId];
-
-  connection.query(deleteSql, values, (err, result) => {
-    if (err) {
-      console.error("에러:", err);
-      res.json({ success: false, result: "데이터 삭제 실패" });
-    } else {
-      console.log("데이터 삭제 success");
-      res.json({ success: true, result: "데이터 삭제 success" });
-    }
-  });
-});
-
-/* */
-
-//게시판 작성
-
-app.post("/boardSubmit", (req, res) => {
-  const userId = req.body.UserId;
-  const userName = req.body.UserName;
-  const title = req.body.title;
-  const content = req.body.content;
-
-  const insertSql =
-    "INSERT INTO user_board (userid, name, title, text) VALUES (?, ?, ?, ?)";
-  const values = [userId, userName, title, content];
-
-  connection.query(insertSql, values, (err, result) => {
-    if (err) {
-      console.error("에러:", err);
-      res.json({ success: false, result: "데이터 전송 실패" });
-    } else {
-      console.log("데이터 삭제 success");
-      res.json({ success: true, result: "데이터 전송 success" });
-    }
-  });
-});
-
-// 게시판 첫 화면로직 + 넘버링 정렬 + 리미트해서 첫화면에 10개씩 띄우고 시작페이지 정했음
-
-app.get("/getBoardData", (req, res) => {
-  const currentData = req.query.currentData;
-  const pageSize = req.query.pageSize;
-  const offset = (currentData - 1) * pageSize;
-  //offset은 데이터를 특정한 위치부터 가져오는데 사용함. 페이지별로 분할하고 원하는 데이터를 가져올수있는 쿼리어임
-  const selectSql = `SELECT name, title, createdAt, boardid, look FROM user_board ORDER BY createdAt DESC LIMIT ${pageSize} OFFSET ${offset}`;
-
-  connection.query(selectSql, (err, result) => {
-    if (err) {
-      console.error("에러:", err);
-      res.json({ success: false });
-    } else {
-      console.log("데이터 조회 success");
-      res.json({ success: true, result });
-    }
-  });
-});
-
-// 페이지 네이션 기능 시작 , 게시판 게시물 수 조회부터
-
-app.get("/getAllPost", (req, res) => {
-  const countSql = "SELECT COUNT(*) AS allPost FROM user_board";
-
-  connection.query(countSql, (err, result) => {
-    if (err) {
-      console.error("에러:", err);
-      res.json({ success: false, result: "false" });
-    } else {
-      const allPost = result[0].allPost;
-      res.json({ success: true, allPost });
-    }
-  });
-});
-
-// 조회수별로 정렬하는 기능
-
-app.get("/lookAllPosts", (req, res) => {
-  const currentLook = req.query.currentLook;
-  const pageSize = 10;
-  const offset = (currentLook - 1) * pageSize;
-
-  const countSql = `SELECT COUNT(*) AS allPost FROM user_board`;
-  const lookSql = `SELECT * FROM user_board ORDER BY look DESC LIMIT ${pageSize} OFFSET ${offset}`;
-
-  connection.query(countSql, (err, countResult) => {
-    if (err) {
-      console.error(err, "err");
-      res.json({ success: false });
-    } else {
-      const allPost = countResult[0].allPost;
-      const allPages = Math.ceil(allPost / pageSize);
-
-      connection.query(lookSql, (err, lookResult) => {
-        if (err) {
-          console.error("err", err);
-          res.json({ success: false });
-        } else {
-          console.log("조회수 순서대로 정렬");
-          res.json({ success: true, result: lookResult, allPages });
-        }
-      });
-    }
-  });
-});
-// 검색기능
-// 검색기능에 대해서 공부할범위 , 2월15일부터 17일까지의 분량임
-
-app.get("/searchPosts", (req, res) => {
-  const keyword = req.query.keyword;
-  const currentPage = req.query.currentPage;
-  const pageSize = 10;
-  const offset = (currentPage - 1) * pageSize;
-
-  const countSql = `SELECT COUNT(*) AS allPost FROM user_board WHERE name LIKE '%${keyword}%' OR title LIKE '%${keyword}%'`;
-  const searchSql = `SELECT name, title, createdAt, boardid, look FROM user_board WHERE name LIKE '%${keyword}%' OR title LIKE '%${keyword}%' ORDER BY createdAt DESC LIMIT ${pageSize} OFFSET ${offset}`;
-
-  connection.query(countSql, (err, countResult) => {
-    if (err) {
-      console.error(err, "err");
-      res.json({ success: false });
-    } else {
-      const allPost = countResult[0].allPost;
-      const allPages = Math.ceil(allPost / pageSize);
-
-      connection.query(searchSql, (err, searchResult) => {
-        if (err) {
-          console.error(err, "err");
-          res.json({ success: false });
-        } else {
-          console.log("검색된 자료만 불러왔다");
-          res.json({ success: true, result: searchResult, allPages });
-        }
-      });
-    }
-  });
-});
-
-// 검색기능에 대해서 공부할범위 , 2월15일부터 17일까지의 분량임
-
-// 조회수 증가
-
-app.get("/increaseLook", (req, res) => {
-  const boardId = req.query.boardid;
-  const increaseLookSql =
-    "UPDATE user_board SET look = look + 1 WHERE boardid = ?";
-  connection.query(increaseLookSql, [boardId], (err, result) => {
-    if (err) {
-      console.error("조회수 업데이트 에러:", err);
-      res.json({ success: false, result: "failed" });
-    } else {
-      res.json({ success: true, result: "success" });
-    }
-  });
-});
-
-// 게시판 들어갔을때 보여주는 view
-
-app.get("/getBoardText", (req, res) => {
-  const boardId = req.query.boardid;
-  const selectSql = "SELECT * FROM user_board WHERE boardid = ?";
-  connection.query(selectSql, [boardId], (err, result) => {
-    if (err) {
-      res.json({ success: false, result: "failed" });
-    } else {
-      res.json({ success: true, result: result });
-    }
-  });
-});
-
-// 게시판 삭제 로직임
-
-app.post("/deleteBoard", (req, res) => {
-  const boardId = req.query.boardid;
-  const deleteQuery = "DELETE FROM user_board WHERE boardid = ?";
-  connection.query(deleteQuery, [boardId], (error, result) => {
-    if (error) {
-      console.error("게시판 삭제 오류:", error);
-      res.json({ success: false });
-    } else {
-      res.json({ success: true, result: result });
-      console.log(boardId);
-    }
-  });
-});
-
-app.get("/modifyBoard", (req, res) => {
-  const boardId = req.query.boardid;
-  const selectSql = "SELECT * FROM user_board WHERE boardid = ?";
-  connection.query(selectSql, [boardId], (err, result) => {
-    if (err) {
-      res.json({ success: false, result: "failed" });
-    } else {
-      res.json({ success: true, result: result });
-    }
-  });
-});
-
-// 수정된 글을 업데이트하는 로직
-app.post("/updateBoard", (req, res) => {
-  const boardId = req.query.boardid;
-  const updatedTitle = req.body.title;
-  const updatedText = req.body.text;
-  const updateQuery =
-    "UPDATE user_board SET title = ?, text = ? WHERE boardid = ?";
-
-  connection.query(
-    updateQuery,
-    [updatedTitle, updatedText, boardId],
-    (error, result) => {
-      if (error) {
-        console.error("게시판 수정 오류:", error);
-        res.json({ success: false });
-      } else {
-        res.json({ success: true, result: result });
-      }
-    }
-  );
-});
-
-// 댓글 작성하는 로직
-
-app.post("/insertReply", (req, res) => {
-  const userId = req.body.UserId;
-  const boardId = req.query.boardid;
-  const userName = req.body.UserName;
-  const text = req.body.text;
-  const insertQuery =
-    "INSERT INTO user_reply (boardid, name, text, userid) VALUES (?, ?, ?, ?)";
-  const values = [boardId, userName, text, userId];
-
-  connection.query(insertQuery, values, (err, result) => {
-    if (err) {
-      console.error("에러:", err);
-      res.json({ success: false, result: "데이터 전송 failed" });
-    } else {
-      console.log("데이터 삽입 success");
-      res.json({ success: true, result: "데이터 전송 success" });
-    }
-  });
-});
-
-// 뷰탭 들어가자마자 댓글 불러오는 로직
-
-app.get("/getUserReply", (req, res) => {
-  const boardId = req.query.boardid;
-  const selectQuery = "SELECT * FROM user_reply WHERE boardid = ?";
-
-  connection.query(selectQuery, [boardId], (err, result) => {
-    if (err) {
-      console.error("에러:", err);
-      res.json({ success: false, result: "댓글 가져오기 실패" });
-    } else {
-      res.json({ success: true, result: result });
-    }
-  });
-});
-
-app.post("/deleteUserReply", (req, res) => {
-  const replyId = req.query.replyid;
-  const deleteQuery = "DELETE FROM user_reply WHERE replyid = ?";
-
-  connection.query(deleteQuery, [replyId], (err, result) => {
-    if (err) {
-      console.error("에러:", err);
-      res.json({ success: false, result: "댓글 삭제 실패" });
-    } else {
-      res.json({ success: true, result: "댓글이 성공적으로 삭제되었습니다." });
-    }
-  });
-});
-
-app.get("/getUserModifyReply", (req, res) => {
-  const replyId = req.query.replyid;
-  const editSql = "SELECT * FROM user_reply WHERE replyid = ?";
-  connection.query(editSql, [replyId], (err, result) => {
-    if (err) {
-      res.json({ success: false, result: "failed" });
-    } else {
-      res.json({ success: true, result: result });
-    }
-  });
-});
-
-app.post("/modifyUserReply", (req, res) => {
-  const modifyText = req.body.text;
-  const replyId = req.query.replyid;
-  const modifyQuery = "UPDATE user_reply SET text = ? WHERE replyid = ?";
-
-  connection.query(modifyQuery, [modifyText, replyId], (error, result) => {
-    if (error) {
-      console.error("게시판 수정 오류:", error);
-      res.json({ success: false });
-    } else {
-      res.json({ success: true, result: result });
-    }
-  });
 });
