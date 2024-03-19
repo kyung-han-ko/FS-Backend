@@ -56,9 +56,9 @@ const userController = require("./controllers/user.controller");
 const boardController = require("./controllers/board.controller");
 const calendarController = require("./controllers/calendar.controller");
 
-app.use("/user", userController);
-app.use("/board", boardController);
-app.use("/calendar", calendarController);
+app.use("/api/user", userController);
+app.use("/api/board", boardController);
+app.use("/api/calendar", calendarController);
 
 // app.post("/post", async function (req, res) {
 //   const email = req.body.email;
@@ -98,7 +98,7 @@ app.use("/calendar", calendarController);
 
 // 이메일 인증번호 확인버튼에 대해서 데이터 교류
 
-app.post("/emailCheck", async (req, res) => {
+app.post("/api/emailCheck", async (req, res) => {
   const emailNumber = req.body.emailNumber;
   const redisClient = await getRedisClient();
   console.log(redisClient);
@@ -200,7 +200,7 @@ app.post("/signup", (req, res) => {
 });
 
 // 닉네임 중복검사
-app.post("/checkName", (req, res) => {
+app.post("/api/checkName", (req, res) => {
   const nameCheck = req.body.name;
 
   connection.getConnection(function (err, connection) {
@@ -228,7 +228,7 @@ app.post("/checkName", (req, res) => {
 });
 
 // 이메일 중복검사
-app.post("/emailCheck", (req, res) => {
+app.post("/api/emailCheck", (req, res) => {
   const emailCheck = req.body.email;
 
   connection.getConnection(function (err, connection) {
@@ -261,7 +261,7 @@ const { off } = require("process");
 // const secret_key = 'MY-SECRET-KEY';
 const SECRET_KEY = process.env.SECRET_KEY;
 
-app.post("/login", (req, res) => {
+app.post("/api/login", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
 
